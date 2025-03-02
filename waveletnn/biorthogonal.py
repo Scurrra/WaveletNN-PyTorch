@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .padding import PadSequence
+from waveletnn import PadSequence
 
 
 class BiorthogonalWaveletBlock1D(nn.Module):
