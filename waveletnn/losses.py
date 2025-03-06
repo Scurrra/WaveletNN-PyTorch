@@ -22,7 +22,7 @@ class OrthonormalWaveletRegularization(nn.Module):
         self.n_moments = n_moments
 
     def forward(self, h, g):
-        r = torch.arange(len(g), dtype=torch.get_default_dtype())
+        r = torch.arange(len(g), dtype=torch.get_default_dtype(), device=g.device)
 
         # sum of scaling function coeffs is equal to square root of two
         l1 = (h.sum() - np.sqrt(2)) ** 2
@@ -63,7 +63,7 @@ class BiorthogonalWaveletRegularization(nn.Module):
         self.n_moments = n_moments
 
     def forward(self, h, g):
-        r = torch.arange(len(g[0]), dtype=torch.get_default_dtype())
+        r = torch.arange(len(g[0]), dtype=torch.get_default_dtype(), device=g[0].device)
 
         # sum of scaling function coeffs is equal to square root of two
         l1 = (h[0].sum() - np.sqrt(2)) ** 2 + (h[1].sum() - np.sqrt(2)) ** 2

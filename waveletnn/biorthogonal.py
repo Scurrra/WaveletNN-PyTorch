@@ -64,7 +64,10 @@ class BiorthogonalWaveletBlock1D(nn.Module):
             nn.init.kaiming_uniform_(self.wavelet_kernel, a=np.sqrt(5))
 
         # helper parameter for computing dual filters
-        self.r = torch.arange(kernel_size, dtype=torch.get_default_dtype())
+        self.r = nn.Parameter(
+            torch.arange(kernel_size, dtype=torch.get_default_dtype()),
+            requires_grad=False
+        )
 
 
     def forward(self, signal, return_filters: bool = False):
@@ -159,7 +162,10 @@ class BiorthogonalWaveletBlock2D(nn.Module):
             nn.init.kaiming_uniform_(self.wavelet_kernel, a=np.sqrt(5))
 
         # helper parameter for computing dual filters
-        self.r = torch.arange(kernel_size, dtype=torch.get_default_dtype())
+        self.r = nn.Parameter(
+            torch.arange(kernel_size, dtype=torch.get_default_dtype()),
+            requires_grad=False
+        )
 
 
     def forward(self, signal, return_filters: bool = False):
