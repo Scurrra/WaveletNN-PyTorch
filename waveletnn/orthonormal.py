@@ -19,7 +19,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
         scaling_kernel (torch.Tensor, default=None): Scaling filter, if None created with torch.nn.init.kaiming_uniform_(a=np.sqrt(5))
     """
 
-    def __init__(self, kernel_size: int, levels: int = 1, padding_mode: str = "antireflect", scaling_kernel = None):
+    def __init__(self, kernel_size: int, levels: int = 1, padding_mode: str = "antireflect", scaling_kernel = None, device = "cpu"):
         assert (kernel_size - 2) % 2 == 0, "Kernel size should be even"
         if (kernel_size - 2) % 4 != 0:
             print("Transform is not invertible by `InverseWaveletBlock1D`")
@@ -30,7 +30,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
         self.kernel_size = kernel_size
         self.padding = (kernel_size - 2) // 2
         self.padding_mode = padding_mode
-        self.pad = PadSequence(self.padding, self.padding, padding_mode)
+        self.pad = PadSequence(self.padding, self.padding, padding_mode).to(device)
 
         if scaling_kernel is not None:
             scaling_kernel = torch.Tensor(scaling_kernel)
@@ -41,14 +41,14 @@ class OrthonormalWaveletBlock1D(nn.Module):
             elif scaling_kernel.shape[0] != 1 or scaling_kernel.shape[1] != 1:
                 raise Exception("First two dimensions of 3d scaling filter are placeholders and both should be equal to 1")
 
-            self.scaling_kernel = nn.Parameter(scaling_kernel)
+            self.scaling_kernel = nn.Parameter(scaling_kernel).to(device)
         else:
-            self.scaling_kernel = nn.Parameter(torch.empty(1,1,kernel_size))
+            self.scaling_kernel = nn.Parameter(torch.empty(1,1,kernel_size)).to(device)
             # just like in pytorch https://github.com/pytorch/pytorch/blob/v2.6.0/torch/nn/modules/conv.py#L182
             nn.init.kaiming_uniform_(self.scaling_kernel, a=np.sqrt(5))
 
         # helper parameter for computing wavelet filter
-        self.r = torch.arange(kernel_size, dtype=torch.get_default_dtype())
+        self.r = torch.arange(kernel_size, dtype=torch.get_default_dtype()).to(device)
 
 
     def forward(self, signal, return_filters: bool = False):
