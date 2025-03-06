@@ -31,11 +31,7 @@ class InverseWaveletBlock1D(nn.Module):
 
         if static_filters:
             assert h is not None and g is not None, "`h` and `g` must be specified"
-            if isinstance(h, tuple) and isinstance(g, tuple):
-                assert len(h) == 2 and len(g) == 2
-                assert len(h[0]) == self.kernel_size and len(g[0]) == self.kernel_size and len(h[1]) == self.kernel_size and len(g[1]) == self.kernel_size
-            else:
-                assert len(h) == self.kernel_size and len(g) == self.kernel_size
+            assert len(h) == self.kernel_size and len(g) == self.kernel_size
 
             self.scaling_kernel = torch.flip(
                 h.reshape(-1,2).permute(1,0), (1,)
@@ -69,11 +65,7 @@ class InverseWaveletBlock1D(nn.Module):
             g = self.wavelet_kernel
         else:
             assert h is not None and g is not None, "`h` and `g` must be specified"
-            if isinstance(h, tuple) and isinstance(g, tuple):
-                assert len(h) == 2 and len(g) == 2
-                assert len(h[0]) == self.kernel_size and len(g[0]) == self.kernel_size and len(h[1]) == self.kernel_size and len(g[1]) == self.kernel_size
-            else:
-                assert len(h) == self.kernel_size and len(g) == self.kernel_size
+            assert len(h) == self.kernel_size and len(g) == self.kernel_size
 
             h = torch.flip(
                 h.reshape(-1,2).permute(1,0), (1,)
@@ -122,11 +114,7 @@ class InverseWaveletBlock2D(nn.Module):
 
         if static_filters:
             assert h is not None and g is not None, "`h` and `g` must be specified"
-            if isinstance(h, tuple) and isinstance(g, tuple):
-                assert len(h) == 2 and len(g) == 2
-                assert len(h[0]) == self.kernel_size and len(g[0]) == self.kernel_size and len(h[1]) == self.kernel_size and len(g[1]) == self.kernel_size
-            else:
-                assert len(h) == self.kernel_size and len(g) == self.kernel_size
+            assert len(h) == self.kernel_size and len(g) == self.kernel_size
 
             self.scaling_kernel = torch.flip(
                 h.reshape(-1,2).permute(1,0), (1,)
@@ -159,11 +147,7 @@ class InverseWaveletBlock2D(nn.Module):
             g = self.wavelet_kernel
         else:
             assert h is not None and g is not None, "`h` and `g` must be specified"
-            if isinstance(h, tuple) and isinstance(g, tuple):
-                assert len(h) == 2 and len(g) == 2
-                assert len(h[0]) == self.kernel_size and len(g[0]) == self.kernel_size and len(h[1]) == self.kernel_size and len(g[1]) == self.kernel_size
-            else:
-                assert len(h) == self.kernel_size and len(g) == self.kernel_size
+            assert len(h) == self.kernel_size and len(g) == self.kernel_size
 
             h = torch.flip(
                 h.reshape(-1,2).permute(1,0), (1,)
