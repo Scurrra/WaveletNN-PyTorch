@@ -1,6 +1,6 @@
 [project]
 name = "waveletnn"
-version = "0.1.2"
+version = "0.2.0"
 description = "WaveletNN blocks and losses"
 keywords = ["wavelet", "dwt", "idwt", "pytorch"]
 authors = [
