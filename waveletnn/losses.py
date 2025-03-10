@@ -16,34 +16,38 @@ class OrthonormalWaveletRegularization(nn.Module):
     All the terms of final sum is squared to set the lower bound of loss (needed for minimization task).
     """
 
-    def __init__(self, pNorm=lambda p: np.sqrt(2) / (2 ** p), n_moments=lambda g: len(g) // 2 + 1):
+    def __init__(self, pNorm=lambda p: np.sqrt(2) / (2 ** p), n_moments=lambda g: len(g) // 2 + 1, lambdas:tuple[float, float, float]=(1.0,1.0,1.0)):
+        assert len(lambdas) == 3
         super(OrthonormalWaveletRegularization, self).__init__()
         self.pNorm = pNorm
         self.n_moments = n_moments
+        self.lambdas = lambdas
 
     def forward(self, h, g):
         r = torch.arange(len(g), dtype=torch.get_default_dtype(), device=g.device)
 
         # sum of scaling function coeffs is equal to square root of two
         l1 = (h.sum() - np.sqrt(2)) ** 2
+        # sum of wavelet coeffs is equal to zero
+        l2 = g.sum() ** 2
 
         # orthogonality
         ## sum of squares equals to one
-        l2 = (torch.dot(h, h) - 1.0) ** 2
+        l3 = (torch.dot(h, h) - 1.0) ** 2
         ## otherwise zero
-        l3 = sum(
+        l4 = sum(
             torch.dot(h[(2*k):], h[:(len(h) - 2*k)]) ** 2
             for k in range(1, (len(h) - 1) // 2 + 1)
         )
 
         # vanishing moments up to N // 2
         ### pNorm is a constant muliplier of the constraint's lhs valished by zero on the rhs
-        l4 = sum(
+        l5 = sum(
             (torch.dot(r ** (p-1), g) * self.pNorm(p)) ** 2
             for p in range(1, self.n_moments(g))
         )
 
-        return l1 + (l2 + l3) + l4
+        return self.lambdas[0]*(l1+l2) + self.lambdas[1]*(l3 + l4) + self.lambdas[2]*l5
     
     
 class BiorthogonalWaveletRegularization(nn.Module):
@@ -57,10 +61,12 @@ class BiorthogonalWaveletRegularization(nn.Module):
     All the terms of final sum is squared to set the lower bound of loss (needed for minimization task).
     """
 
-    def __init__(self, pNorm=lambda p: np.sqrt(2) / (2 ** p), n_moments=lambda g: len(g) // 2 + 1):
+    def __init__(self, pNorm=lambda p: np.sqrt(2) / (2 ** p), n_moments=lambda g: len(g) // 2 + 1, lambdas:tuple[float, float, float]=(1.0,1.0,1.0)):
+        assert len(lambdas) == 3
         super(BiorthogonalWaveletRegularization, self).__init__()
         self.pNorm = pNorm
         self.n_moments = n_moments
+        self.lambdas = lambdas
 
     def forward(self, h, g):
         r = torch.arange(len(g[0]), dtype=torch.get_default_dtype(), device=g[0].device)
@@ -90,4 +96,4 @@ class BiorthogonalWaveletRegularization(nn.Module):
             for p in range(1, self.n_moments(g[1]))
         )
 
-        return (l1 + l2) + (l3 + l4) + (l5 + l6)
+        return self.lambdas[0]*(l1 + l2) + self.lambdas[1]*(l3 + l4) + self.lambdas[2]*(l5 + l6)
