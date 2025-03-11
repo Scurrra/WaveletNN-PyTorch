@@ -1,4 +1,4 @@
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 __all__ = [
     "PadSequence",
@@ -9,7 +9,7 @@ __all__ = [
     "BiorthogonalWaveletBlock2D",
     "BiorthogonalWaveletRegularization",
     "InverseWaveletBlock1D",
-    "InverseWaveletBlock2D"
+    "InverseWaveletBlock2D",
 ]
 
 from .padding import PadSequence

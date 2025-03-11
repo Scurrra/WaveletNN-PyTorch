@@ -9,7 +9,7 @@ class PadSequence(nn.Module):
     Args:
         padding_left, padding_right: the size of the padding.
         mode: one of padding modes "constant", "circular", "replicate", "reflect", "antireflect"
-        
+
     Shape:
         - Input: :math:`(H, 1, W_{in})` or :math:`(N, H, 1, W_{in})`.
         - Output: :math:`(H, 1, W_{out})` or :math:`(N, H, 1, W_{out})`, where
@@ -50,7 +50,7 @@ class PadSequence(nn.Module):
                 # ```... (2*x1 - x3) (2*x1 - x2) | x1 x2 ... xn | (2*xn - xn-1) (2*xn - xn-2) ...```
                 l, r, _, _ = self.padding
                 Y = F.pad(X, self.padding, "reflect")
-                Y[..., :l] = torch.sub(2 * Y[..., l:l+1], Y[..., :l])
-                Y[..., -r:] = torch.sub(2 * Y[..., -r-1:-r], Y[..., -r:])
+                Y[..., :l] = torch.sub(2 * Y[..., l : l + 1], Y[..., :l])
+                Y[..., -r:] = torch.sub(2 * Y[..., -r - 1 : -r], Y[..., -r:])
 
         return Y if d == 4 else torch.squeeze(Y, 0)
