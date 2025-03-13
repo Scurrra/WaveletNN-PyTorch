@@ -62,7 +62,7 @@ class BiorthogonalWaveletBlock1D(nn.Module):
             wavelet_kernel = wavelet.dec_hi
 
         if scaling_kernel is not None:
-            scaling_kernel = torch.Tensor(scaling_kernel)
+            scaling_kernel = torch.as_tensor(scaling_kernel)
             if scaling_kernel.dim() == 1:
                 scaling_kernel = scaling_kernel.reshape(1, 1, -1)
             elif scaling_kernel.dim() != 3:
@@ -71,6 +71,9 @@ class BiorthogonalWaveletBlock1D(nn.Module):
                 raise Exception(
                     "First two dimensions of 3d scaling filter are placeholders and both should be equal to 1"
                 )
+            assert scaling_kernel.shape[-1] == kernel_size, (
+                "Length of provided kernel should be equal to kernel_size."
+            )
 
             self.scaling_kernel = nn.Parameter(scaling_kernel)
         else:
@@ -79,15 +82,18 @@ class BiorthogonalWaveletBlock1D(nn.Module):
             nn.init.kaiming_uniform_(self.scaling_kernel, a=np.sqrt(5))
 
         if wavelet_kernel is not None:
-            wavelet_kernel = torch.Tensor(wavelet_kernel)
+            wavelet_kernel = torch.as_tensor(wavelet_kernel)
             if wavelet_kernel.dim() == 1:
                 wavelet_kernel = wavelet_kernel.reshape(1, 1, -1)
             elif wavelet_kernel.dim() != 3:
-                raise Exception("Scaling kernel should have 1 or 3 dimensions")
+                raise Exception("Wavelet kernel should have 1 or 3 dimensions")
             elif wavelet_kernel.shape[0] != 1 or wavelet_kernel.shape[1] != 1:
                 raise Exception(
                     "First two dimensions of 3d scaling filter are placeholders and both should be equal to 1"
                 )
+            assert wavelet_kernel.shape[-1] == kernel_size, (
+                "Length of provided kernel should be equal to kernel_size."
+            )
 
             self.wavelet_kernel = nn.Parameter(wavelet_kernel)
         else:
@@ -127,8 +133,8 @@ class BiorthogonalWaveletBlock1D(nn.Module):
             signal = signals[-1].detach()
 
         if return_filters:
-            gr = torch.flip(hd, (2,)) * (-1) ** (self.r + 0)
-            hr = torch.flip(gd, (2,)) * (-1) ** (self.r + 1)
+            gr = torch.flip(hd, (2,)) * (-1) ** (self.r + 1)
+            hr = torch.flip(gd, (2,)) * (-1) ** (self.r + 0)
 
             return (signals, details), (
                 (hd.reshape(-1), hr.reshape(-1)),
@@ -184,7 +190,7 @@ class BiorthogonalWaveletBlock2D(nn.Module):
             wavelet_kernel = wavelet.dec_hi
 
         if scaling_kernel is not None:
-            scaling_kernel = torch.Tensor(scaling_kernel)
+            scaling_kernel = torch.as_tensor(scaling_kernel)
             if scaling_kernel.dim() == 1:
                 scaling_kernel = scaling_kernel.reshape(1, 1, -1)
             elif scaling_kernel.dim() != 3:
@@ -193,6 +199,9 @@ class BiorthogonalWaveletBlock2D(nn.Module):
                 raise Exception(
                     "First two dimensions of 3d scaling filter are placeholders and both should be equal to 1"
                 )
+            assert scaling_kernel.shape[-1] == kernel_size, (
+                "Length of provided kernel should be equal to kernel_size."
+            )
 
             self.scaling_kernel = nn.Parameter(scaling_kernel)
         else:
@@ -201,15 +210,18 @@ class BiorthogonalWaveletBlock2D(nn.Module):
             nn.init.kaiming_uniform_(self.scaling_kernel, a=np.sqrt(5))
 
         if wavelet_kernel is not None:
-            wavelet_kernel = torch.Tensor(wavelet_kernel)
+            wavelet_kernel = torch.as_tensor(wavelet_kernel)
             if wavelet_kernel.dim() == 1:
                 wavelet_kernel = wavelet_kernel.reshape(1, 1, -1)
             elif wavelet_kernel.dim() != 3:
-                raise Exception("Scaling kernel should have 1 or 3 dimensions")
+                raise Exception("Wavelet kernel should have 1 or 3 dimensions")
             elif wavelet_kernel.shape[0] != 1 or wavelet_kernel.shape[1] != 1:
                 raise Exception(
                     "First two dimensions of 3d scaling filter are placeholders and both should be equal to 1"
                 )
+            assert wavelet_kernel.shape[-1] == kernel_size, (
+                "Length of provided kernel should be equal to kernel_size."
+            )
 
             self.wavelet_kernel = nn.Parameter(wavelet_kernel)
         else:
@@ -268,8 +280,8 @@ class BiorthogonalWaveletBlock2D(nn.Module):
             signal = ss[-1].detach()
 
         if return_filters:
-            gr = torch.flip(hd, (2,)) * (-1) ** (self.r + 0)
-            hr = torch.flip(gd, (2,)) * (-1) ** (self.r + 1)
+            gr = torch.flip(hd, (2,)) * (-1) ** (self.r + 1)
+            hr = torch.flip(gd, (2,)) * (-1) ** (self.r + 0)
 
             return (ss, sd, ds, dd), (
                 (hd.reshape(-1), hr.reshape(-1)),

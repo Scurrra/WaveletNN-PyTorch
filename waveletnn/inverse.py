@@ -22,8 +22,8 @@ class InverseWaveletBlock1D(nn.Module):
         levels (int, default=1): Number of transform levels
         padding_mode (str, default="antireflect"): The padding scheme, "constant", "circular", "replicate", "reflect" or "antireflect"
         static_filters (bool, default=True): Whether kernels are provided on init
-        h (torch.Tensor, default=None): Scaling filter
-        g (torch.Tensor, default=None): Wavelet filter
+        scaling_kernel (torch.Tensor, default=None): Scaling filter
+        wavelet_kernel (torch.Tensor, default=None): Wavelet filter
         wavelet (str, default=None): Wavelet name, available in PyWavelets library (waveletnn[pywt]); shadows h and g if specified
     """
 
@@ -33,8 +33,8 @@ class InverseWaveletBlock1D(nn.Module):
         levels: int = 1,
         padding_mode: str = "antireflect",
         static_filters: bool = True,
-        h=None,
-        g=None,
+        scaling_kernel=None,
+        wavelet_kernel=None,
         wavelet: str = None,
     ):
         assert (kernel_size - 2) % 4 == 0
@@ -55,19 +55,33 @@ class InverseWaveletBlock1D(nn.Module):
                     f"Unkhown wavelet `{wavelet}`, known wavlets are {pywt.wavelist()}"
                 )
                 wavelet = pywt.Wavelet(wavelet)
-                h = wavelet.rec_lo
-                g = wavelet.rec_hi
+                # for some reason reconstruction filters in PyWavelets are flipped
+                scaling_kernel = wavelet.rec_lo[::-1]
+                wavelet_kernel = wavelet.rec_hi[::-1]
 
-            assert h is not None and g is not None, "`h` and `g` must be specified"
-            assert len(h) == self.kernel_size and len(g) == self.kernel_size
+            assert scaling_kernel is not None and wavelet_kernel is not None, (
+                "`scaling_kernel` and `wavelet_kernel` must be specified"
+            )
 
-            self.scaling_kernel = torch.flip(
-                h.reshape(-1, 2).permute(1, 0), (1,)
+            scaling_kernel = torch.as_tensor(scaling_kernel)
+            wavelet_kernel = torch.as_tensor(wavelet_kernel)
+
+            assert scaling_kernel.dim() == 1 and wavelet_kernel.dim() == 1
+            assert (
+                scaling_kernel.shape[0] == self.kernel_size
+                and wavelet_kernel.shape[0] == self.kernel_size
+            )
+
+            scaling_kernel = torch.flip(
+                scaling_kernel.reshape(-1, 2).permute(1, 0), (1,)
             ).unsqueeze(1)
 
-            self.wavelet_kernel = torch.flip(
-                g.reshape(-1, 2).permute(1, 0), (1,)
+            wavelet_kernel = torch.flip(
+                wavelet_kernel.reshape(-1, 2).permute(1, 0), (1,)
             ).unsqueeze(1)
+
+        self.scaling_kernel = nn.Parameter(scaling_kernel, requires_grad=False)
+        self.wavelet_kernel = nn.Parameter(wavelet_kernel, requires_grad=False)
         self.static_filters = static_filters
 
     def forward(self, signal, details, h=None, g=None, wavelet: str = None):
@@ -100,14 +114,19 @@ class InverseWaveletBlock1D(nn.Module):
                     f"Unkhown wavelet `{wavelet}`, known wavlets are {pywt.wavelist()}"
                 )
                 wavelet = pywt.Wavelet(wavelet)
-                h = wavelet.rec_lo
-                g = wavelet.rec_hi
+                # for some reason reconstruction filters in PyWavelets are flipped
+                h = wavelet.rec_lo[::-1]
+                g = wavelet.rec_hi[::-1]
 
             assert h is not None and g is not None, "`h` and `g` must be specified"
-            assert len(h) == self.kernel_size and len(g) == self.kernel_size
+
+            h = torch.as_tensor(h, device=self.scaling_kernel.device)
+            g = torch.as_tensor(g, device=self.wavelet_kernel.device)
+
+            assert h.dim() == 1 and g.dim() == 1
+            assert h.shape[0] == self.kernel_size and g.shape[0] == self.kernel_size
 
             h = torch.flip(h.reshape(-1, 2).permute(1, 0), (1,)).unsqueeze(1)
-
             g = torch.flip(g.reshape(-1, 2).permute(1, 0), (1,)).unsqueeze(1)
 
         for i in range(self.levels - 1, -1, -1):
@@ -133,8 +152,8 @@ class InverseWaveletBlock2D(nn.Module):
         levels (int, default=1): Number of transform levels
         padding_mode (str, default="antireflect"): The padding scheme, "constant", "circular", "replicate", "reflect" or "antireflect"
         static_filters (bool, default=True): Whether kernels are provided on init
-        h (torch.Tensor, default=None): Scaling filter
-        g (torch.Tensor, default=None): Wavelet filter
+        scaling_kernel (torch.Tensor, default=None): Scaling filter
+        wavelet_kernel (torch.Tensor, default=None): Wavelet filter
         wavelet (str, default=None): Wavelet name, available in PyWavelets library (waveletnn[pywt]); shadows h and g if specified
     """
 
@@ -144,8 +163,8 @@ class InverseWaveletBlock2D(nn.Module):
         levels: int = 1,
         padding_mode: str = "antireflect",
         static_filters: bool = True,
-        h=None,
-        g=None,
+        scaling_kernel=None,
+        wavelet_kernel=None,
         wavelet: str = None,
     ):
         assert (kernel_size - 2) % 4 == 0
@@ -166,23 +185,37 @@ class InverseWaveletBlock2D(nn.Module):
                     f"Unkhown wavelet `{wavelet}`, known wavlets are {pywt.wavelist()}"
                 )
                 wavelet = pywt.Wavelet(wavelet)
-                h = wavelet.rec_lo
-                g = wavelet.rec_hi
+                # for some reason reconstruction filters in PyWavelets are flipped
+                scaling_kernel = wavelet.rec_lo[::-1]
+                wavelet_kernel = wavelet.rec_hi[::-1]
 
-            assert h is not None and g is not None, "`h` and `g` must be specified"
-            assert len(h) == self.kernel_size and len(g) == self.kernel_size
+            assert scaling_kernel is not None and wavelet_kernel is not None, (
+                "`scaling_kernel` and `wavelet_kernel` must be specified"
+            )
 
-            self.scaling_kernel = (
-                torch.flip(h.reshape(-1, 2).permute(1, 0), (1,))
+            scaling_kernel = torch.as_tensor(scaling_kernel)
+            wavelet_kernel = torch.as_tensor(wavelet_kernel)
+
+            assert scaling_kernel.dim() == 1 and wavelet_kernel.dim() == 1
+            assert (
+                scaling_kernel.shape[0] == self.kernel_size
+                and wavelet_kernel.shape[0] == self.kernel_size
+            )
+
+            scaling_kernel = (
+                torch.flip(scaling_kernel.reshape(-1, 2).permute(1, 0), (1,))
                 .unsqueeze(1)
                 .unsqueeze(1)
             )
 
-            self.wavelet_kernel = (
-                torch.flip(g.reshape(-1, 2).permute(1, 0), (1,))
+            wavelet_kernel = (
+                torch.flip(wavelet_kernel.reshape(-1, 2).permute(1, 0), (1,))
                 .unsqueeze(1)
                 .unsqueeze(1)
             )
+
+        self.scaling_kernel = nn.Parameter(scaling_kernel, requires_grad=False)
+        self.wavelet_kernel = nn.Parameter(wavelet_kernel, requires_grad=False)
         self.static_filters = static_filters
 
     def forward(self, ss, sd, ds, dd, h=None, g=None, wavelet: str = None):
@@ -214,10 +247,17 @@ class InverseWaveletBlock2D(nn.Module):
                     f"Unkhown wavelet `{wavelet}`, known wavlets are {pywt.wavelist()}"
                 )
                 wavelet = pywt.Wavelet(wavelet)
-                h = wavelet.rec_lo
-                g = wavelet.rec_hi
+                # for some reason reconstruction filters in PyWavelets are flipped
+                h = wavelet.rec_lo[::-1]
+                g = wavelet.rec_hi[::-1]
+
             assert h is not None and g is not None, "`h` and `g` must be specified"
-            assert len(h) == self.kernel_size and len(g) == self.kernel_size
+
+            h = torch.as_tensor(h, device=self.scaling_kernel.device)
+            g = torch.as_tensor(g, device=self.wavelet_kernel.device)
+
+            assert h.dim() == 1 and g.dim() == 1
+            assert h.shape[0] == self.kernel_size and g.shape[0] == self.kernel_size
 
             h = (
                 torch.flip(h.reshape(-1, 2).permute(1, 0), (1,))

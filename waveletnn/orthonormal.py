@@ -59,7 +59,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
             scaling_kernel = wavelet.dec_lo
 
         if scaling_kernel is not None:
-            scaling_kernel = torch.Tensor(scaling_kernel)
+            scaling_kernel = torch.as_tensor(scaling_kernel)
             if scaling_kernel.dim() == 1:
                 scaling_kernel = scaling_kernel.reshape(1, 1, -1)
             elif scaling_kernel.dim() != 3:
@@ -68,6 +68,9 @@ class OrthonormalWaveletBlock1D(nn.Module):
                 raise Exception(
                     "First two dimensions of 3d scaling filter are placeholders and both should be equal to 1"
                 )
+            assert scaling_kernel.shape[-1] == kernel_size, (
+                "Length of provided kernel should be equal to kernel_size."
+            )
 
             self.scaling_kernel = nn.Parameter(scaling_kernel)
         else:
@@ -156,7 +159,7 @@ class OrthonormalWaveletBlock2D(nn.Module):
             scaling_kernel = wavelet.dec_lo
 
         if scaling_kernel is not None:
-            scaling_kernel = torch.Tensor(scaling_kernel)
+            scaling_kernel = torch.as_tensor(scaling_kernel)
             if scaling_kernel.dim() == 1:
                 scaling_kernel = scaling_kernel.reshape(1, 1, -1)
             elif scaling_kernel.dim() != 3:
@@ -165,6 +168,9 @@ class OrthonormalWaveletBlock2D(nn.Module):
                 raise Exception(
                     "First two dimensions of 3d scaling filter are placeholders and both should be equal to 1"
                 )
+            assert scaling_kernel.shape[-1] == kernel_size, (
+                "Length of provided kernel should be equal to kernel_size."
+            )
 
             self.scaling_kernel = nn.Parameter(scaling_kernel)
         else:
