@@ -119,16 +119,22 @@ class BiorthogonalWaveletBlock1D(nn.Module):
             (h, g) (Tuple[Tuple[List[torch.Tensor], List[torch.Tensor]], Tuple[List[torch.Tensor], List[torch.Tensor]]]): scaling and wavelet filters if the return_filters flag is on
         """
 
+        assert signal.dim() == 3
+        b, c, _ = signal.shape
+
         hd = self.scaling_kernel
         gd = self.wavelet_kernel
+
+        H = hd.repeat(c, 1, 1)
+        G = gd.repeat(c, 1, 1)
 
         signals, details = [], []
 
         for _ in range(self.levels):
             signal = self.pad(signal)
 
-            details.append(F.conv1d(signal, gd, stride=2))
-            signals.append(F.conv1d(signal, hd, stride=2))
+            signals.append(F.conv1d(signal, H, stride=2, groups=c))
+            details.append(F.conv1d(signal, G, stride=2, groups=c))
 
             signal = signals[-1].detach()
 
@@ -247,35 +253,27 @@ class BiorthogonalWaveletBlock2D(nn.Module):
             (h, g) (Tuple[Tuple[List[torch.Tensor], List[torch.Tensor]], Tuple[List[torch.Tensor], List[torch.Tensor]]]): scaling and wavelet filters if the return_filters flag is on
         """
 
+        assert signal.dim() == 4
+        b, c, _, _ = signal.shape
+
         hd = self.scaling_kernel
         gd = self.wavelet_kernel
+
+        H = hd.repeat(c, 1, 1, 1)
+        G = gd.repeat(c, 1, 1, 1)
 
         ss, sd, ds, dd = [], [], [], []
 
         for _ in range(self.levels):
-            signal = self.pad(signal.permute(0, 2, 1, 3))
+            signal = self.pad(signal)
 
-            c = signal.shape[1]
-            H = hd.repeat(c, 1, 1, 1)
-            G = gd.repeat(c, 1, 1, 1)
-            s = self.pad(
-                F.conv2d(signal, H, stride=2, groups=c)
-                .permute(0, 2, 1, 3)
-                .mT.permute(0, 2, 1, 3)
-            )
-            d = self.pad(
-                F.conv2d(signal, G, stride=2, groups=c)
-                .permute(0, 2, 1, 3)
-                .mT.permute(0, 2, 1, 3)
-            )
+            s = self.pad(F.conv2d(signal, H, stride=(1, 2), groups=c).mT)
+            d = self.pad(F.conv2d(signal, G, stride=(1, 2), groups=c).mT)
 
-            c = s.shape[1]
-            H = hd.repeat(c, 1, 1, 1)
-            G = gd.repeat(c, 1, 1, 1)
-            ss.append(F.conv2d(s, H, stride=2, groups=c).permute(0, 2, 1, 3).mT)
-            sd.append(F.conv2d(s, G, stride=2, groups=c).permute(0, 2, 1, 3).mT)
-            ds.append(F.conv2d(d, H, stride=2, groups=c).permute(0, 2, 1, 3).mT)
-            dd.append(F.conv2d(d, G, stride=2, groups=c).permute(0, 2, 1, 3).mT)
+            ss.append(F.conv2d(s, H, stride=(1, 2), groups=c).mT)
+            sd.append(F.conv2d(s, G, stride=(1, 2), groups=c).mT)
+            ds.append(F.conv2d(d, H, stride=(1, 2), groups=c).mT)
+            dd.append(F.conv2d(d, G, stride=(1, 2), groups=c).mT)
 
             signal = ss[-1].detach()
 

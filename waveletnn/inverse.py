@@ -100,7 +100,8 @@ class InverseWaveletBlock1D(nn.Module):
 
         if len(signal) == self.levels:
             signal = signal[-1]
-        c = signal.shape[0]
+        assert signal.dim() == 3
+        b, c, _ = signal.shape
 
         if self.static_filters:
             h = self.scaling_kernel
@@ -131,13 +132,17 @@ class InverseWaveletBlock1D(nn.Module):
 
         for i in range(self.levels - 1, -1, -1):
             # pad signal and details
-            signal = self.pad(signal)
-            detail = self.pad(details[i])
+            signal = self.pad(signal.reshape(b * c, 1, -1))
+            detail = self.pad(details[i].reshape(b * c, 1, -1))
             # convolve and riffle
-            signal = F.conv1d(signal, h, stride=1).permute(0, 2, 1).reshape(c, 1, -1)
-            detail = F.conv1d(detail, g, stride=1).permute(0, 2, 1).reshape(c, 1, -1)
+            signal = (
+                F.conv1d(signal, h, stride=1).permute(0, 2, 1).reshape(b * c, 1, -1)
+            )
+            detail = (
+                F.conv1d(detail, g, stride=1).permute(0, 2, 1).reshape(b * c, 1, -1)
+            )
             # add up
-            signal = torch.add(signal, detail)
+            signal = torch.add(signal, detail).reshape(b, c, -1)
 
         return signal
 
@@ -232,8 +237,10 @@ class InverseWaveletBlock2D(nn.Module):
             torch.Tensor: reconstructed signal
         """
 
-        # number of batches
-        b = ss.shape[0]
+        if len(ss) == self.levels:
+            ss = ss[-1]
+        assert ss.dim() == 4
+        b, c, _, _ = ss.shape
 
         if self.static_filters:
             h = self.scaling_kernel
@@ -273,61 +280,68 @@ class InverseWaveletBlock2D(nn.Module):
 
         for i in range(self.levels - 1, -1, -1):
             # compute convolution kernels for channel processing
-            c = ss.shape[2]
-            H = h.repeat(c, 1, 1, 1)
-            G = g.repeat(c, 1, 1, 1)
+            H = h.repeat(ss.shape[2], 1, 1, 1)
+            G = g.repeat(ss.shape[2], 1, 1, 1)
 
             # synthesize approximation
-            signal = self.pad(ss.mT.permute(0, 2, 1, 3))
-            detail = self.pad(sd[i].mT.permute(0, 2, 1, 3))
+            signal = self.pad(
+                ss.reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
+            )
+            detail = self.pad(
+                sd[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
+            )
             s = (
                 torch.add(
-                    F.conv2d(signal, H, stride=1, groups=c)
-                    .reshape(b, c, 2, -1)
+                    F.conv2d(signal, H, stride=1, groups=signal.shape[1])
+                    .reshape(b * c, signal.shape[1], 2, -1)
                     .permute(0, 1, 3, 2)
-                    .reshape(b, c, 1, -1),
-                    F.conv2d(detail, G, stride=1, groups=c)
-                    .reshape(b, c, 2, -1)
+                    .reshape(b * c, signal.shape[1], 1, -1),
+                    F.conv2d(detail, G, stride=1, groups=detail.shape[1])
+                    .reshape(b * c, detail.shape[1], 2, -1)
                     .permute(0, 1, 3, 2)
-                    .reshape(b, c, 1, -1),
+                    .reshape(b * c, detail.shape[1], 1, -1),
                 )
                 .permute(0, 2, 1, 3)
                 .mT.permute(0, 2, 1, 3)
             )
 
             # synthesise details
-            signal = self.pad(ds[i].mT.permute(0, 2, 1, 3))
-            detail = self.pad(dd[i].mT.permute(0, 2, 1, 3))
+            signal = self.pad(
+                ds[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
+            )
+            detail = self.pad(
+                dd[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
+            )
             d = (
                 torch.add(
-                    F.conv2d(signal, H, stride=1, groups=c)
-                    .reshape(b, c, 2, -1)
+                    F.conv2d(signal, H, stride=1, groups=signal.shape[1])
+                    .reshape(b * c, signal.shape[1], 2, -1)
                     .permute(0, 1, 3, 2)
-                    .reshape(b, c, 1, -1),
-                    F.conv2d(detail, G, stride=1, groups=c)
-                    .reshape(b, c, 2, -1)
+                    .reshape(b * c, signal.shape[1], 1, -1),
+                    F.conv2d(detail, G, stride=1, groups=detail.shape[1])
+                    .reshape(b * c, detail.shape[1], 2, -1)
                     .permute(0, 1, 3, 2)
-                    .reshape(b, c, 1, -1),
+                    .reshape(b * c, detail.shape[1], 1, -1),
                 )
                 .permute(0, 2, 1, 3)
                 .mT.permute(0, 2, 1, 3)
             )
 
             # compute convolution kernels for channel processing
-            c = s.shape[1]
-            H = h.repeat(c, 1, 1, 1)
-            G = g.repeat(c, 1, 1, 1)
+            H = h.repeat(s.shape[1], 1, 1, 1)
+            G = g.repeat(s.shape[1], 1, 1, 1)
 
             # synthesize signal
             ss = torch.add(
-                F.conv2d(self.pad(s), H, stride=1, groups=c)
-                .reshape(b, c, 2, -1)
+                F.conv2d(self.pad(s), H, stride=1, groups=s.shape[1])
+                .reshape(b * c, s.shape[1], 2, -1)
                 .permute(0, 1, 3, 2)
-                .reshape(b, c, 1, -1),
-                F.conv2d(self.pad(d), G, stride=1, groups=c)
-                .reshape(b, c, 2, -1)
+                .reshape(b * c, s.shape[1], 1, -1),
+                F.conv2d(self.pad(d), G, stride=1, groups=d.shape[1])
+                .reshape(b * c, d.shape[1], 2, -1)
                 .permute(0, 1, 3, 2)
-                .reshape(b, c, 1, -1),
+                .reshape(b * c, d.shape[1], 1, -1),
             ).permute(0, 2, 1, 3)
+            ss = ss.reshape(b, c, *ss.shape[2:])
 
         return ss
