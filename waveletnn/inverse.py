@@ -25,6 +25,7 @@ class InverseWaveletBlock1D(nn.Module):
         scaling_kernel (torch.Tensor, default=None): Scaling filter
         wavelet_kernel (torch.Tensor, default=None): Wavelet filter
         wavelet (str, default=None): Wavelet name, available in PyWavelets library (waveletnn[pywt]); shadows h and g if specified
+        normalize_approximation (bool, default=False): Whether the aproximation was normalized by sum of caling coefficients
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class InverseWaveletBlock1D(nn.Module):
         scaling_kernel=None,
         wavelet_kernel=None,
         wavelet: str = None,
+        normalize_approximation: bool = False,
     ):
         assert (kernel_size - 2) % 4 == 0
         super(InverseWaveletBlock1D, self).__init__()
@@ -45,6 +47,7 @@ class InverseWaveletBlock1D(nn.Module):
         self.padding = (kernel_size - 2) // 4
         self.padding_mode = padding_mode
         self.pad = PadSequence(self.padding, self.padding, padding_mode)
+        self.normalize_approximation = normalize_approximation
 
         if static_filters:
             if wavelet is not None:
@@ -132,7 +135,11 @@ class InverseWaveletBlock1D(nn.Module):
 
         for i in range(self.levels - 1, -1, -1):
             # pad signal and details
-            signal = self.pad(signal.reshape(b * c, 1, -1))
+            signal = (
+                self.pad(signal.reshape(b * c, 1, -1)) * h.sum()
+                if self.normalize_approximation
+                else 1
+            )
             detail = self.pad(details[i].reshape(b * c, 1, -1))
             # convolve and riffle
             signal = (
@@ -160,6 +167,7 @@ class InverseWaveletBlock2D(nn.Module):
         scaling_kernel (torch.Tensor, default=None): Scaling filter
         wavelet_kernel (torch.Tensor, default=None): Wavelet filter
         wavelet (str, default=None): Wavelet name, available in PyWavelets library (waveletnn[pywt]); shadows h and g if specified
+        normalize_approximation (bool, default=False): Whether the aproximation was normalized by sum of caling coefficients
     """
 
     def __init__(
@@ -171,6 +179,7 @@ class InverseWaveletBlock2D(nn.Module):
         scaling_kernel=None,
         wavelet_kernel=None,
         wavelet: str = None,
+        normalize_approximation: bool = False,
     ):
         assert (kernel_size - 2) % 4 == 0
         super(InverseWaveletBlock2D, self).__init__()
@@ -180,6 +189,7 @@ class InverseWaveletBlock2D(nn.Module):
         self.padding = (kernel_size - 2) // 4
         self.padding_mode = padding_mode
         self.pad = PadSequence(self.padding, self.padding, padding_mode)
+        self.normalize_approximation = normalize_approximation
 
         if static_filters:
             if wavelet is not None:
@@ -284,30 +294,41 @@ class InverseWaveletBlock2D(nn.Module):
             G = g.repeat(ss.shape[2], 1, 1, 1)
 
             # synthesize approximation
-            signal = self.pad(
-                ss.reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
+            signal = (
+                self.pad(ss.reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2))
+                * h.sum()
+                if self.normalize_approximation
+                else 1
             )
             detail = self.pad(
                 sd[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
             )
             s = (
-                torch.add(
-                    F.conv2d(signal, H, stride=1, groups=signal.shape[1])
-                    .reshape(b * c, signal.shape[1], 2, -1)
-                    .permute(0, 1, 3, 2)
-                    .reshape(b * c, signal.shape[1], 1, -1),
-                    F.conv2d(detail, G, stride=1, groups=detail.shape[1])
-                    .reshape(b * c, detail.shape[1], 2, -1)
-                    .permute(0, 1, 3, 2)
-                    .reshape(b * c, detail.shape[1], 1, -1),
+                (
+                    torch.add(
+                        F.conv2d(signal, H, stride=1, groups=signal.shape[1])
+                        .reshape(b * c, signal.shape[1], 2, -1)
+                        .permute(0, 1, 3, 2)
+                        .reshape(b * c, signal.shape[1], 1, -1),
+                        F.conv2d(detail, G, stride=1, groups=detail.shape[1])
+                        .reshape(b * c, detail.shape[1], 2, -1)
+                        .permute(0, 1, 3, 2)
+                        .reshape(b * c, detail.shape[1], 1, -1),
+                    )
+                    .permute(0, 2, 1, 3)
+                    .mT.permute(0, 2, 1, 3)
                 )
-                .permute(0, 2, 1, 3)
-                .mT.permute(0, 2, 1, 3)
+                * h.sum()
+                if self.normalize_approximation
+                else 1
             )
 
             # synthesise details
-            signal = self.pad(
-                ds[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)
+            signal = (
+                self.pad(ds[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2))
+                * h.sum()
+                if self.normalize_approximation
+                else 1
             )
             detail = self.pad(
                 dd[i].reshape(b * c, ss.shape[2], ss.shape[3]).mT.unsqueeze(2)

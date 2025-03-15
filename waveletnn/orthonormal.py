@@ -25,6 +25,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
         padding_mode (str, default="antireflect"): The padding scheme, "constant", "circular", "replicate", "reflect" or "antireflect"
         scaling_kernel (torch.Tensor, default=None): Scaling filter, if None created with torch.nn.init.kaiming_uniform_(a=np.sqrt(5))
         wavelet (str, default=None): Wavelet name, available in PyWavelets library (waveletnn[pywt]); shadows scaling_kernel if specified
+        normalize_approximation (bool, default=False): Whether to normalize aproximation by sum of caling coefficients
     """
 
     def __init__(
@@ -34,6 +35,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
         padding_mode: str = "antireflect",
         scaling_kernel=None,
         wavelet: str = None,
+        normalize_approximation: bool = False,
     ):
         assert (kernel_size - 2) % 2 == 0, "Kernel size should be even"
         if (kernel_size - 2) % 4 != 0:
@@ -46,6 +48,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
         self.padding = (kernel_size - 2) // 2
         self.padding_mode = padding_mode
         self.pad = PadSequence(self.padding, self.padding, padding_mode)
+        self.normalize_approximation = normalize_approximation
 
         if wavelet is not None:
             assert _has_pywt, (
@@ -110,7 +113,11 @@ class OrthonormalWaveletBlock1D(nn.Module):
         for _ in range(self.levels):
             signal = self.pad(signal)
 
-            signals.append(F.conv1d(signal, H, stride=2, groups=c))
+            signals.append(
+                F.conv1d(signal, H, stride=2, groups=c) / h.sum()
+                if self.normalize_approximation
+                else 1
+            )
             details.append(F.conv1d(signal, G, stride=2, groups=c))
 
             signal = signals[-1].detach()
@@ -131,6 +138,7 @@ class OrthonormalWaveletBlock2D(nn.Module):
         padding_mode (str, default="antireflect"): The padding scheme, "constant", "circular", "replicate", "reflect" or "antireflect"
         scaling_kernel (torch.Tensor, default=None): Scaling filter, if None created with torch.nn.init.kaiming_uniform_(a=np.sqrt(5))
         wavelet (str, default=None): Wavelet name, available in PyWavelets library (waveletnn[pywt]); shadows scaling_kernel if specified
+        normalize_approximation (bool, default=False): Whether to normalize aproximation by sum of caling coefficients
     """
 
     def __init__(
@@ -140,6 +148,7 @@ class OrthonormalWaveletBlock2D(nn.Module):
         padding_mode: str = "antireflect",
         scaling_kernel=None,
         wavelet: str = None,
+        normalize_approximation: bool = False,
     ):
         assert (kernel_size - 2) % 2 == 0, "Kernel size should be even"
         if (kernel_size - 2) % 4 != 0:
@@ -152,6 +161,7 @@ class OrthonormalWaveletBlock2D(nn.Module):
         self.padding = (kernel_size - 2) // 2
         self.padding_mode = padding_mode
         self.pad = PadSequence(self.padding, self.padding, self.padding_mode)
+        self.normalize_approximation = normalize_approximation
 
         if wavelet is not None:
             assert _has_pywt, (
@@ -216,12 +226,24 @@ class OrthonormalWaveletBlock2D(nn.Module):
         for _ in range(self.levels):
             signal = self.pad(signal)
 
-            s = self.pad(F.conv2d(signal, H, stride=(1, 2), groups=c).mT)
+            s = (
+                self.pad(F.conv2d(signal, H, stride=(1, 2), groups=c).mT) / h.sum()
+                if self.normalize_approximation
+                else 1
+            )
             d = self.pad(F.conv2d(signal, G, stride=(1, 2), groups=c).mT)
 
-            ss.append(F.conv2d(s, H, stride=(1, 2), groups=c).mT)
+            ss.append(
+                F.conv2d(s, H, stride=(1, 2), groups=c).mT / h.sum()
+                if self.normalize_approximation
+                else 1
+            )
             sd.append(F.conv2d(s, G, stride=(1, 2), groups=c).mT)
-            ds.append(F.conv2d(d, H, stride=(1, 2), groups=c).mT)
+            ds.append(
+                F.conv2d(d, H, stride=(1, 2), groups=c).mT / h.sum()
+                if self.normalize_approximation
+                else 1
+            )
             dd.append(F.conv2d(d, G, stride=(1, 2), groups=c).mT)
 
             signal = ss[-1].detach()
