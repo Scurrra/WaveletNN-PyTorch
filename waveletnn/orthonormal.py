@@ -88,7 +88,7 @@ class OrthonormalWaveletBlock1D(nn.Module):
         """Foward pass of OrthonormalWaveletBlock1D.
 
         Args:
-            sigal (torch.Tensor): Signal to be analyzed
+            signal (torch.Tensor): Signal to be analyzed
             return_filters (bool, default=False): Whether scaling and wavelet filters should be returned, useful for reqularization
 
         Output:
@@ -194,7 +194,7 @@ class OrthonormalWaveletBlock2D(nn.Module):
         """Foward pass of OrthonormalWaveletBlock2D.
 
         Args:
-            sigal (torch.Tensor): Signal to be analyzed
+            signal (torch.Tensor): Signal to be analyzed
             return_filters (bool, default=False): Whether scaling and wavelet filters should be returned, useful for reqularization
 
         Output:

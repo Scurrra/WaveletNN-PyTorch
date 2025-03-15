@@ -98,7 +98,7 @@ class InverseWaveletBlock1D(nn.Module):
             torch.Tensor: reconstructed signal
         """
 
-        if len(signal) == self.levels:
+        if isinstance(signal, list):
             signal = signal[-1]
         assert signal.dim() == 3
         b, c, _ = signal.shape
@@ -237,7 +237,7 @@ class InverseWaveletBlock2D(nn.Module):
             torch.Tensor: reconstructed signal
         """
 
-        if len(ss) == self.levels:
+        if isinstance(ss, list):
             ss = ss[-1]
         assert ss.dim() == 4
         b, c, _, _ = ss.shape

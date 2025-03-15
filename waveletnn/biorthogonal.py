@@ -111,7 +111,7 @@ class BiorthogonalWaveletBlock1D(nn.Module):
         """Foward pass of BiorthogonalWaveletBlock1D.
 
         Args:
-            sigal (torch.Tensor): Signal to be analyzed
+            signal (torch.Tensor): Signal to be analyzed
             return_filters (bool, default=False): Whether scaling and wavelet filters should be returned, useful for reqularization
 
         Output:
@@ -245,7 +245,7 @@ class BiorthogonalWaveletBlock2D(nn.Module):
         """Foward pass of BiorthogonalWaveletBlock2D.
 
         Args:
-            sigal (torch.Tensor): Signal to be analyzed
+            signal (torch.Tensor): Signal to be analyzed
             return_filters (bool, default=False): Whether scaling and wavelet filters should be returned, useful for reqularization
 
         Output:
