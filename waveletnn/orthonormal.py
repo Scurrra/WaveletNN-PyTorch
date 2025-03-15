@@ -114,9 +114,8 @@ class OrthonormalWaveletBlock1D(nn.Module):
             signal = self.pad(signal)
 
             signals.append(
-                F.conv1d(signal, H, stride=2, groups=c) / h.sum()
-                if self.normalize_approximation
-                else 1
+                F.conv1d(signal, H, stride=2, groups=c)
+                / (h.sum() if self.normalize_approximation else 1)
             )
             details.append(F.conv1d(signal, G, stride=2, groups=c))
 
@@ -226,23 +225,19 @@ class OrthonormalWaveletBlock2D(nn.Module):
         for _ in range(self.levels):
             signal = self.pad(signal)
 
-            s = (
-                self.pad(F.conv2d(signal, H, stride=(1, 2), groups=c).mT) / h.sum()
-                if self.normalize_approximation
-                else 1
+            s = self.pad(F.conv2d(signal, H, stride=(1, 2), groups=c).mT) / (
+                h.sum() if self.normalize_approximation else 1
             )
             d = self.pad(F.conv2d(signal, G, stride=(1, 2), groups=c).mT)
 
             ss.append(
-                F.conv2d(s, H, stride=(1, 2), groups=c).mT / h.sum()
-                if self.normalize_approximation
-                else 1
+                F.conv2d(s, H, stride=(1, 2), groups=c).mT
+                / (h.sum() if self.normalize_approximation else 1)
             )
             sd.append(F.conv2d(s, G, stride=(1, 2), groups=c).mT)
             ds.append(
-                F.conv2d(d, H, stride=(1, 2), groups=c).mT / h.sum()
-                if self.normalize_approximation
-                else 1
+                F.conv2d(d, H, stride=(1, 2), groups=c).mT
+                / (h.sum() if self.normalize_approximation else 1)
             )
             dd.append(F.conv2d(d, G, stride=(1, 2), groups=c).mT)
 
