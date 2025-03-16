@@ -1,6 +1,6 @@
 [project]
 name = "waveletnn"
-version = "0.3.1"
+version = "0.3.2"
 description = "WaveletNN blocks and losses"
 keywords = ["wavelet", "dwt", "idwt", "pytorch"]
 authors = [{ name = "Scurrra (Ilja Baroŭski)", email = "iscurrra@gmail.com" }]
