@@ -145,8 +145,8 @@ class BiorthogonalWaveletBlock1D(nn.Module):
             signal = signals[-1].detach()
 
         if return_filters:
-            gr = torch.flip(hd, (2,)) * (-1) ** (self.r + 1)
-            hr = torch.flip(gd, (2,)) * (-1) ** (self.r + 0)
+            gr = torch.flip(hd, (2,)) * (-1) ** (self.r + 0)
+            hr = torch.flip(gd, (2,)) * (-1) ** (self.r + 1)
 
             return (signals, details), (
                 (hd.reshape(-1), hr.reshape(-1)),
