@@ -24,6 +24,6 @@ The signal extension (padding) is performed via separate module `PadSequence`. E
 - "circular" -- ```... xn-1 xn | x1 x2 ... xn | x1 x2 ...``` (same as in `torch`, corresponds to "periodic" padding in `pywt`)
 - "replicate" -- ```... x1 x1 | x1 x2 ... xn | xn xn ...``` (same as in `torch`, corresponds to "constant" padding in `pywt`)
 - "reflect" -- ```... x3 x2 | x1 x2 ... xn | xn-1 xn-2 ...``` (same as in `torch` and `pywt`)
-- "antireflect" -- ```... (2*x1 - x3) (2*x1 - x2) | x1 x2 ... xn | (2*xn - xn-1) (2*xn - xn-2) ...``` (same as in `pywt`, not preset in `torch`)
+- "antireflect" -- ```... (2*x1 - x3) (2*x1 - x2) | x1 x2 ... xn | (2*xn - xn-1) (2*xn - xn-2) ...``` (same as in `pywt`, not present in `torch`)
 
 For examples on usage see [notebooks directory](notebooks/).
