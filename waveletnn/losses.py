@@ -74,12 +74,17 @@ class BiorthogonalWaveletRegularization(nn.Module):
         self,
         pNorm=lambda p: np.sqrt(2) / (2**p),
         n_moments=lambda g: len(g) // 2 + 1,
+        n_moments_dual=None,
         lambdas: tuple[float, float, float] = (1.0, 1.0, 1.0),
     ):
         assert len(lambdas) == 3
         super(BiorthogonalWaveletRegularization, self).__init__()
         self.pNorm = pNorm
         self.n_moments = n_moments
+        if n_moments_dual is None:
+            self.n_moments_dual = n_moments
+        else:
+            self.n_moments_dual = n_moments_dual
         self.lambdas = lambdas
 
     def forward(self, h, g):
@@ -107,7 +112,7 @@ class BiorthogonalWaveletRegularization(nn.Module):
         )
         l6 = sum(
             (torch.dot(r ** (p - 1), g[1]) * self.pNorm(p)) ** 2
-            for p in range(1, self.n_moments(g[1]))
+            for p in range(1, self.n_moments_dual(g[1]))
         )
 
         return (
